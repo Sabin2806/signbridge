@@ -13,6 +13,13 @@ SignBridge: Real-time CNN-based ASL &amp; ISL sign alphabet recognition using Me
 SignBridge is a deep learning-based system that recognizes **American Sign Language (ASL)** and **Indian Sign Language (ISL)** alphabets in real-time using only a standard webcam. No GPU, no internet, no special hardware required.
 
 ---
+**HOME PAGE**
+
+<img src="assets/images/home page.png" width="700">
+
+**SELECTION PAGE**
+
+<img src="assets/images/selection page.png" width="700">
 
 ## 📊 Performance
 
@@ -42,11 +49,12 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 ---
 
 ## 🏗️ Architecture
- Camera → MediaPipe (21 landmarks) → Feature Extraction (63/126 features)
-→ CNN Model (25 layers) → Smart Filter → Text Output + Voice
+<img src="assets/images/architecture.png" width="700">
 
 
 ### CNN Architecture
+
+<img src="assets/images/cnn architecture.png" width="700">
 
 | Layer Type | Count | Purpose |
 |-----------|-------|---------|
@@ -78,9 +86,12 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 │ ├── style_home.css
 │ ├── style_selection.css
 │ ├── style_recognition.css
-│ └── images/
-│ ├── asl.jpg
-│ └── isl.jpeg
+├──assets
+│   └── images/
+|       ├── home page.png
+│       └── selection page.png
+|       |__ architecture.png
+|       |__ cnn architecture.png
 ├── plots/ # Training visualizations
 └── reports/ # Training reports
 
