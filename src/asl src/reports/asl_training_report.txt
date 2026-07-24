@@ -1,0 +1,25 @@
+======================================================================
+ASL SIGN LANGUAGE CNN TRAINING REPORT
+Generated: 2026-05-30 13:35:12
+======================================================================
+
+TRAINING CONFIGURATION:
+----------------------------------------
+Mode: ASL
+Input Shape: (63,)
+Output Classes: 26
+Max Images per Letter: 600
+Batch Size: 32
+Epochs Trained: 50
+Learning Rate: 0.001
+Augmentation: True
+
+RESULTS:
+----------------------------------------
+Test Accuracy: 99.92%
+
+F1-Score (Macro): 99.92%
+F1-Score (Weighted): 99.92%
+
+PER-CLASS F1 SCORES:
+----------------------------------------

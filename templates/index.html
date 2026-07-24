@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignBridge - Multi-Modal Sign Recognition</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_home.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0f1a;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr 0.9fr 0.9fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 14px;
+            padding: 16px;
+            height: 100vh;
+            box-sizing: border-box;
+            max-width: 100vw;
+        }
+        
+        .bento-box {
+            padding: 22px 24px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .bento-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .box-hero {
+            grid-column: span 2;
+            grid-row: span 2;
+            background: linear-gradient(135deg, #1a2332 0%, #0f172a 100%);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+        }
+        
+        .box-hero .hero-tag {
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 900;
+            color: #4a6fa5;
+            font-size: 0.7rem;
+            margin-bottom: 12px;
+        }
+        
+        .box-hero h1 {
+            font-size: 2.6rem;
+            line-height: 1.2;
+            margin: 0;
+            color: #ffffff;
+            font-weight: 800;
+        }
+        
+        .box-hero .accent-text {
+            color: #00f3ff;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            display: inline-block;
+        }
+        
+        .box-hero .hero-desc {
+            max-width: 100%;
+            margin-top: 14px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+        
+        .box-accent {
+            grid-column: span 1;
+            grid-row: span 1;
+            background: linear-gradient(135deg, #00f3ff 0%, #00c4cc 100%);
+            border: none;
+        }
+        
+        .box-accent .accuracy-value {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+            text-align: center;
+        }
+        
+        .box-accent .accuracy-label {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            font-weight: 900;
+            margin-top: 8px;
+            color: #0f172a;
+            text-align: center;
+        }
+        
+        .box-stats-1 {
+            grid-column: span 1;
+            grid-row: span 1;
+            background: linear-gradient(135deg, #1a2332 0%, #15202b 100%);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .box-stats-1 h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .box-stats-1 .speed-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #ffffff;
+            background: #0f172a;
+            display: inline-block;
+            padding: 6px 16px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(46, 204, 113, 0.5);
+        }
+        
+        .box-stats-1 p {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        
+        .box-info-1 {
+            grid-column: span 1;
+            grid-row: span 1;
+            background: linear-gradient(135deg, #1a2332 0%, #141e2b 100%);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+        }
+        
+        .box-info-1 h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #00f3ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .box-info-1 p {
+            font-size: 0.8rem;
+            color: #b0bec5;
+            line-height: 1.5;
+        }
+        
+        .box-info-2 {
+            grid-column: span 1;
+            grid-row: span 1;
+            background: linear-gradient(135deg, #1a2332 0%, #141e2b 100%);
+            border: 1px solid rgba(0, 255, 102, 0.2);
+        }
+        
+        .box-info-2 h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #00ff66;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .box-info-2 p {
+            font-size: 0.8rem;
+            color: #b0bec5;
+            line-height: 1.5;
+        }
+        
+        .box-action {
+            grid-column: span 1;
+            grid-row: span 1;
+            background: linear-gradient(135deg, #1a2332 0%, #0f172a 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .box-action h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        
+        .box-action p {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+        
+        .action-btn {
+            padding: 12px 24px;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .action-btn.initialize {
+            background: #00f3ff;
+            color: #0f172a;
+        }
+        
+        .action-btn.initialize:hover {
+            background: #00d8e6;
+            box-shadow: 0 8px 25px rgba(0, 243, 255, 0.3);
+        }
+        
+        .action-btn.shutdown {
+            background: #ff4444;
+            color: #ffffff;
+        }
+        
+        .action-btn.shutdown:hover {
+            background: #e63939;
+            box-shadow: 0 8px 25px rgba(255, 68, 68, 0.3);
+        }
+        
+        .wire-deco {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            opacity: 0.4;
+            color: #ffffff;
+        }
+        
+        @media (max-width: 1400px) {
+            .bento-grid {
+                grid-template-columns: 1.1fr 0.9fr 0.9fr 0.9fr;
+                gap: 10px;
+                padding: 12px;
+            }
+            .bento-box {
+                padding: 18px 20px;
+            }
+            .box-hero h1 {
+                font-size: 2.2rem;
+            }
+            .box-accent .accuracy-value {
+                font-size: 2.8rem;
+            }
+        }
+        
+        @media (max-width: 1100px) {
+            .bento-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto;
+                height: auto;
+                overflow-y: auto;
+            }
+            body {
+                overflow-y: auto;
+            }
+            .box-hero {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .bento-grid {
+                grid-template-columns: 1fr;
+                padding: 8px;
+                gap: 8px;
+            }
+            .box-hero {
+                grid-column: span 1;
+            }
+            .box-hero h1 {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bento-grid">
+        
+        <!-- HERO BOX -->
+        <div class="bento-box box-hero">
+            <div>
+                <p class="hero-tag">[ Deep Learning Inference Engine ]</p>
+                <h1>SignBridge<br><span class="accent-text">Recognition System</span></h1>
+            </div>
+            <p class="hero-desc">Advanced deep learning gesture translation platform running high-speed CNN inference pipelines with MediaPipe landmark extraction for real-time sign language recognition.</p>
+            <div class="wire-deco">CNN</div>
+        </div>
+        
+        <!-- ACCURACY BOX -->
+        <div class="bento-box box-accent">
+            <div>
+                <div class="accuracy-value">99.9%</div>
+                <p class="accuracy-label">Test Accuracy</p>
+            </div>
+            <div class="wire-deco" style="color: #0f172a;">MAX</div>
+        </div>
+        
+        <!-- SPEED BOX -->
+        <div class="bento-box box-stats-1">
+            <h2>⚡ Inference Speed</h2>
+            <div class="speed-value">&lt; 5ms</div>
+            <p>Real-time CNN inference latency per frame on standard CPU hardware.</p>
+            <div class="wire-deco">FAST</div>
+        </div>
+        
+        <!-- ASL BOX -->
+        <div class="bento-box box-info-1">
+            <h2>🇺🇸 ASL Model</h2>
+            <p>63-feature single-hand CNN architecture with 210K trainable parameters. Trained on 600 images per alphabet letter with data augmentation for robust recognition.</p>
+            <div class="wire-deco">ASL</div>
+        </div>
+        
+        <!-- ISL BOX -->
+        <div class="bento-box box-info-2">
+            <h2>🇮🇳 ISL Model</h2>
+            <p>126-feature dual-hand CNN architecture with 1M parameters. Dynamic zero-padding enables robust classification of complex multi-hand gestures.</p>
+            <div class="wire-deco">ISL</div>
+        </div>
+        
+        <!-- INITIALIZE BOX -->
+        <div class="bento-box box-action" style="border: 1px solid rgba(0, 243, 255, 0.3);">
+            <div>
+                <h2>🚀 System Core</h2>
+                <p>Initialize video capture loops and load deep learning models for real-time sign language recognition.</p>
+            </div>
+            <a href="/selection" class="action-btn initialize">Initialize System</a>
+        </div>
+        
+        <!-- SHUTDOWN BOX -->
+        <div class="bento-box box-action" style="border: 1px solid rgba(255, 68, 68, 0.3);">
+            <div>
+                <h2>⏻ Shutdown</h2>
+                <p>Terminate server processes, release camera hardware, and clear model allocations safely.</p>
+            </div>
+            <a href="#" onclick="shutdownSystem(); return false;" class="action-btn shutdown">Shutdown System</a>
+        </div>
+        
+    </div>
+
+    <script>
+        function shutdownSystem() {
+            if (confirm('⚠️ Shutdown System?\n\nThis will terminate the server and close all active connections.')) {
+                fetch('/api/shutdown', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0f172a;color:#ff4444;font-family:system-ui;font-size:1.5rem;text-align:center;flex-direction:column;"><div style="font-size:4rem;margin-bottom:20px;">⏻</div>System Shutdown Complete.<br><span style="font-size:0.9rem;color:#94a3b8;margin-top:10px;">You can close this window now.</span></div>';
+                })
+                .catch(error => {
+                    document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0f172a;color:#ff4444;font-family:system-ui;font-size:1.5rem;text-align:center;flex-direction:column;"><div style="font-size:4rem;margin-bottom:20px;">⏻</div>System Shutdown Complete.<br><span style="font-size:0.9rem;color:#94a3b8;margin-top:10px;">You can close this window now.</span></div>';
+                });
+            }
+        }
+    </script>
+</body>
+</html>

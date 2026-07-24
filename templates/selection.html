@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignBridge - Model Selection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_selection.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header-area">
+            <div>
+                <div class="header-tag">[ DEEP LEARNING ACCESSIBILITY HUB ]</div>
+                <h1>SignBridge - Select Recognition Subsystem</h1>
+            </div>
+            <a href="/" class="back-btn">Back to Home</a>
+        </div>
+        <div class="selector-grid">
+            <div class="selection-card" onclick="location.href='/recognition?mode=ASL'">
+                <div>
+                    <div class="card-title">ASL <span style="color: var(--accent-cyan); font-weight:300;">Recognition</span></div>
+                    <p class="card-desc">Launches American Sign Language CNN pipeline. Processes 63-dimensional MediaPipe hand landmarks through a 210K parameter convolutional neural network.</p>
+                </div>
+                <a href="/recognition?mode=ASL" class="select-action-link">Activate ASL Pipeline</a>
+            </div>
+            <div class="selection-card" onclick="location.href='/recognition?mode=ISL'">
+                <div>
+                    <div class="card-title">ISL <span style="color: #00ff66; font-weight:300;">Recognition</span></div>
+                    <p class="card-desc">Launches Indian Sign Language dual-hand CNN pipeline. Processes 126-dimensional features through a 1M parameter deep learning model with automatic zero-padding.</p>
+                </div>
+                <a href="/recognition?mode=ISL" class="select-action-link">Activate ISL Pipeline</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

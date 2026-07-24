@@ -1,0 +1,208 @@
+:root {
+    --bg-card: rgba(255, 255, 255, 0.75);
+    --bg-hero: rgba(15, 23, 42, 0.95);        /* Changed to dark for SignBridge */
+    --color-text: #ffffff;                      /* Changed to white */
+    --color-muted: #94a3b8;                     /* Changed for dark bg */
+    --accent-cyan: #00f3ff;
+    --border-neon: rgba(0, 243, 255, 0.6);
+    --glass-blur: blur(12px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+body { 
+    margin: 0;
+    padding: 40px; 
+    min-height: 100vh; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    background-color: #0b132b;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/static/images/background_nodes.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(150px, auto);
+    gap: 24px;
+    max-width: 1300px;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: bentoEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bento-box {
+    background-color: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    outline: 1px solid rgba(15, 23, 42, 0.1);
+    padding: 35px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bento-box:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent-cyan);
+    box-shadow: 0px 12px 30px rgba(0, 243, 255, 0.25);
+}
+
+/* HERO BOX - Dark background for SignBridge */
+.box-hero { 
+    grid-column: span 8; 
+    grid-row: span 3; 
+    background-color: var(--bg-hero); 
+    border: 1px solid var(--border-neon); 
+}
+
+/* ACCURACY BOX */
+.box-accent { 
+    grid-column: span 4; 
+    grid-row: span 2; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background: linear-gradient(135deg, #00f3ff 0%, #00c4cc 100%);
+    border: none;
+}
+
+.box-stats-1 { 
+    grid-column: span 4; 
+    grid-row: span 1; 
+    background-color: rgba(26, 35, 50, 0.9);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.box-info-1 { 
+    grid-column: span 4; 
+    grid-row: span 2; 
+    background-color: rgba(26, 35, 50, 0.9);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.box-info-2 { 
+    grid-column: span 4; 
+    grid-row: span 2; 
+    background-color: rgba(26, 35, 50, 0.9);
+    border: 1px solid rgba(0, 255, 102, 0.2);
+}
+
+.box-action { 
+    grid-column: span 4; 
+    grid-row: span 2; 
+    background-color: #0f172a; 
+    color: #ffffff; 
+    border: 1px solid rgba(255, 255, 255, 0.2); 
+}
+
+/* TYPOGRAPHY */
+h1 { 
+    font-size: 3.5rem; 
+    font-weight: 900; 
+    text-transform: uppercase; 
+    line-height: 1.0; 
+    letter-spacing: -2px; 
+    margin-top: 20px; 
+    color: #ffffff;  /* WHITE for visibility */
+}
+
+h2 { 
+    font-size: 1.3rem; 
+    text-transform: uppercase; 
+    font-weight: bold; 
+    letter-spacing: -1px; 
+    margin-bottom: 12px; 
+    color: #ffffff;  /* WHITE */
+}
+
+.box-action h2 { color: #ffffff; }
+
+p { 
+    font-size: 0.9rem; 
+    line-height: 1.5; 
+    color: #94a3b8;
+    font-weight: 400; 
+}
+
+.box-action p { color: #94a3b8; }
+
+/* ACCENT TEXT - CYAN HIGHLIGHT */
+.accent-text { 
+    color: #00f3ff;                    /* CYAN */
+    font-weight: 900; 
+    background-color: transparent;     /* No background */
+    padding: 0;                        /* No padding */
+    display: inline;                   /* Inline */
+    transform: none;                   /* No skew */
+    box-shadow: none;                  /* No shadow */
+}
+
+.wire-deco { 
+    font-size: 7.5rem; 
+    font-weight: 900; 
+    opacity: 0.05; 
+    position: absolute; 
+    bottom: -25px; 
+    right: 15px; 
+    pointer-events: none; 
+    text-transform: uppercase; 
+    transition: all 0.4s ease; 
+    color: #ffffff; 
+}
+
+.bento-box:hover .wire-deco { 
+    transform: scale(1.1) rotate(-3deg); 
+    opacity: 0.15; 
+    color: var(--accent-cyan); 
+}
+
+.action-btn {
+    display: block;
+    background: var(--accent-cyan);
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 18px;
+    text-transform: uppercase;
+    font-weight: 900;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 25px;
+    letter-spacing: 1px;
+    font-size: 1.1rem;
+    box-shadow: 4px 4px 0px #ffffff;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover { 
+    background: #ffffff; 
+    color: #0f172a; 
+    transform: translateY(-2px); 
+    box-shadow: 0px 4px 15px var(--accent-cyan); 
+}
+
+@keyframes bentoEntrance { 
+    to { opacity: 1; transform: translateY(0); } 
+}

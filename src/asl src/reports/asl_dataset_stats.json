@@ -1,0 +1,167 @@
+{
+  "mode": "asl",
+  "max_images_per_letter": 600,
+  "total_original_images": 23400,
+  "total_after_trimming": 15600,
+  "total_after_extraction": 13920,
+  "total_after_augmentation": 41760,
+  "failed_extractions": 1680,
+  "per_class": {
+    "A": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 564,
+      "failed": 36
+    },
+    "B": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 537,
+      "failed": 63
+    },
+    "C": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 569,
+      "failed": 31
+    },
+    "D": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 518,
+      "failed": 82
+    },
+    "E": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 476,
+      "failed": 124
+    },
+    "F": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 524,
+      "failed": 76
+    },
+    "G": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 581,
+      "failed": 19
+    },
+    "H": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 578,
+      "failed": 22
+    },
+    "I": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 551,
+      "failed": 49
+    },
+    "J": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 556,
+      "failed": 44
+    },
+    "K": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 541,
+      "failed": 59
+    },
+    "L": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 529,
+      "failed": 71
+    },
+    "M": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 506,
+      "failed": 94
+    },
+    "N": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 556,
+      "failed": 44
+    },
+    "O": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 539,
+      "failed": 61
+    },
+    "P": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 511,
+      "failed": 89
+    },
+    "Q": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 546,
+      "failed": 54
+    },
+    "R": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 547,
+      "failed": 53
+    },
+    "S": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 540,
+      "failed": 60
+    },
+    "T": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 562,
+      "failed": 38
+    },
+    "U": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 541,
+      "failed": 59
+    },
+    "V": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 508,
+      "failed": 92
+    },
+    "W": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 541,
+      "failed": 59
+    },
+    "X": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 517,
+      "failed": 83
+    },
+    "Y": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 486,
+      "failed": 114
+    },
+    "Z": {
+      "original": 900,
+      "after_trim": 600,
+      "extracted": 496,
+      "failed": 104
+    }
+  }
+}
