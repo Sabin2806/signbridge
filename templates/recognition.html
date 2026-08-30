@@ -6,7 +6,6 @@
     <title>Live Recognition Arena</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style_recognition.css') }}">
     <style>
-        /* Keyboard Shortcuts Panel Styles */
         .shortcuts-panel {
             position: fixed;
             bottom: 20px;
@@ -146,7 +145,6 @@
             margin: 0 2px;
         }
         
-        /* Stability Status Indicator */
         .stability-indicator {
             display: inline-block;
             padding: 3px 10px;
@@ -173,6 +171,13 @@
             background: rgba(0, 243, 255, 0.2);
             color: #00f3ff;
             border: 1px solid #00f3ff;
+        }
+
+        #webcam-video {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: #000;
         }
     </style>
 </head>
@@ -232,13 +237,12 @@
             <div class="video-box">
 
                 <div class="console-header">
-                    [ OPENCV REALTIME CAMERA VIDEO FEED ]
+                    [ BROWSER WEBCAM VIDEO FEED ]
                 </div>
 
                 <div class="video-feed-wrapper">
-                    <img src="/video_feed"
-                         class="video-feed"
-                         alt="Vision Stream">
+                    <video id="webcam-video" autoplay playsinline></video>
+                    <canvas id="webcam-canvas" style="display:none;"></canvas>
                 </div>
 
                 <div class="metrics-panel">
@@ -335,7 +339,6 @@
         </div>
     </div>
 
-    <!-- Keyboard Shortcuts Panel -->
     <div id="shortcuts-panel" class="shortcuts-panel collapsed">
         <div class="shortcuts-header" onclick="toggleShortcutsPanel()">
             <span>⌨️ Keyboard Shortcuts</span>
@@ -347,28 +350,12 @@
                 <span class="shortcut-action">Delete last character</span>
             </div>
             <div class="shortcut-item">
-                <span class="shortcut-key">Ctrl + Backspace</span>
-                <span class="shortcut-action">Delete last word</span>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Delete</span>
-                <span class="shortcut-action">Delete last character</span>
-            </div>
-            <div class="shortcut-item">
                 <span class="shortcut-key">Space</span>
                 <span class="shortcut-action">Add space</span>
             </div>
             <div class="shortcut-item">
                 <span class="shortcut-key">Enter</span>
                 <span class="shortcut-action">Speak text aloud</span>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Ctrl + Z</span>
-                <span class="shortcut-action">Undo last action</span>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Ctrl + C</span>
-                <span class="shortcut-action">Copy text to clipboard</span>
             </div>
             <div class="shortcut-item">
                 <span class="shortcut-key">Esc</span>
@@ -383,40 +370,145 @@
 
 <script>
 
-// ====================================
-// STABILITY SETTINGS
-// ====================================
+let webcamStream = null;
+let predictionInterval = null;
+
 const ACCURACY_THRESHOLD = 0.85;
 let stableLetterCounter = 0;
 let lastDetectedLetter = "";
 let actionHistory = [];
 const MAX_HISTORY = 50;
-
 const STABILITY_SPACE = 15;
 const STABILITY_LETTER = 10;
 
 // ====================================
-// KEYBOARD SHORTCUTS SYSTEM
+// WEBCAM INITIALIZATION
 // ====================================
 
-let ctrlPressed = false;
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Control' || e.key === 'Meta') {
-        ctrlPressed = true;
+async function initializeWebcam() {
+    try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 },
+            audio: false
+        });
+        
+        const video = document.getElementById('webcam-video');
+        video.srcObject = webcamStream;
+        
+        showToast('📹 Webcam connected! Show hand signs to translate.');
+        return true;
+        
+    } catch (error) {
+        console.error('Webcam error:', error);
+        showToast('❌ Webcam access denied. Please allow camera permission.');
+        document.getElementById('lbl-letter').innerText = 'No Camera';
+        return false;
     }
-});
+}
 
-document.addEventListener('keyup', function(e) {
-    if (e.key === 'Control' || e.key === 'Meta') {
-        ctrlPressed = false;
+// ====================================
+// SEND FRAMES TO BACKEND
+// ====================================
+
+function sendFrameForPrediction() {
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    
+    if (!webcamStream || video.readyState !== 4) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = 640;
+    canvas.height = 480;
+    ctx.drawImage(video, 0, 0, 640, 480);
+    
+    const frameData = canvas.toDataURL('image/jpeg', 0.7);
+    
+    fetch('/api/predict_frame', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ frame: frameData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        updatePredictionDisplay(data);
+    })
+    .catch(err => console.log('Prediction sync...'));
+}
+
+// ====================================
+// UPDATE PREDICTION DISPLAY
+// ====================================
+
+function updatePredictionDisplay(data) {
+    let displayLetter = data.letter;
+    if (data.letter === "SPACE") {
+        displayLetter = "[ SPACE ]";
+    } else if (data.letter === "Scanning...") {
+        displayLetter = "Waiting...";
+    } else if (data.letter === "Hold steady...") {
+        displayLetter = "Hold...";
     }
-});
+    
+    document.getElementById('lbl-letter').innerText = displayLetter;
+
+    let percentage = (data.confidence * 100).toFixed(1);
+    document.getElementById('lbl-confidence').innerText = percentage + "%";
+
+    const progressBar = document.getElementById('confidence-bar');
+    progressBar.style.width = percentage + "%";
+
+    if (data.confidence >= 0.90) {
+        progressBar.style.backgroundColor = "#00ff00";
+    } else if (data.confidence >= 0.80) {
+        progressBar.style.backgroundColor = "#ffff00";
+    } else if (data.confidence >= 0.60) {
+        progressBar.style.backgroundColor = "#ff9900";
+    } else {
+        progressBar.style.backgroundColor = "var(--accent-cyan)";
+    }
+
+    updateStabilityBadge(data.letter, data.confidence);
+
+    if (data.letter !== "Scanning..." && 
+        data.letter !== "Hold steady..." &&
+        data.letter !== "Camera Error" &&
+        data.confidence >= ACCURACY_THRESHOLD) {
+
+        if (data.letter === lastDetectedLetter) {
+            stableLetterCounter++;
+
+            let requiredStability = (data.letter === "SPACE") ? STABILITY_SPACE : STABILITY_LETTER;
+
+            if (stableLetterCounter >= requiredStability) {
+                if (data.letter === "SPACE") {
+                    appendSpace();
+                } else {
+                    appendToConsole(data.letter);
+                }
+                
+                stableLetterCounter = 0;
+                lastDetectedLetter = "";
+            }
+        } else {
+            lastDetectedLetter = data.letter;
+            stableLetterCounter = 1;
+        }
+    } else {
+        stableLetterCounter = 0;
+        if (data.confidence < ACCURACY_THRESHOLD && data.letter !== "Scanning...") {
+            lastDetectedLetter = "";
+        }
+    }
+}
+
+// ====================================
+// KEYBOARD SHORTCUTS
+// ====================================
 
 document.addEventListener('keydown', function(event) {
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-        return;
-    }
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
     
     const key = event.key;
     const ctrl = event.ctrlKey || event.metaKey;
@@ -425,50 +517,19 @@ document.addEventListener('keydown', function(event) {
         case (key === 'Backspace' && !ctrl):
             event.preventDefault();
             deleteLastChar();
-            showKeyboardIndicator('⌫ Character deleted');
             break;
-            
-        case (key === 'Backspace' && ctrl):
-            event.preventDefault();
-            deleteLastWord();
-            showKeyboardIndicator('⌫ Word deleted');
-            break;
-            
-        case (key === 'Delete' && !ctrl):
-            event.preventDefault();
-            deleteLastChar();
-            showKeyboardIndicator('⌦ Character deleted');
-            break;
-            
         case (key === ' ' && !ctrl):
             event.preventDefault();
             addManualSpace();
-            showKeyboardIndicator('␣ Space added');
             break;
-            
         case (key === 'Enter' && !ctrl):
             event.preventDefault();
             triggerVoiceSynthesis();
             break;
-            
-        case (key === 'z' && ctrl):
-            event.preventDefault();
-            undoLastAction();
-            showKeyboardIndicator('↩ Undo');
-            break;
-            
-        case (key === 'c' && ctrl):
-            event.preventDefault();
-            copyToClipboard();
-            showKeyboardIndicator('📋 Copied!');
-            break;
-            
         case (key === 'Escape'):
             event.preventDefault();
             clearAllText();
-            showKeyboardIndicator('✕ All cleared');
             break;
-            
         case (key === '?' && !ctrl):
             event.preventDefault();
             toggleShortcutsPanel();
@@ -477,24 +538,8 @@ document.addEventListener('keydown', function(event) {
 });
 
 // ====================================
-// UI FEEDBACK FUNCTIONS
+// UI FUNCTIONS
 // ====================================
-
-function showKeyboardIndicator(message) {
-    const existing = document.querySelector('.keyboard-indicator');
-    if (existing) existing.remove();
-    
-    const indicator = document.createElement('div');
-    indicator.className = 'keyboard-indicator';
-    indicator.textContent = message;
-    document.body.appendChild(indicator);
-    
-    setTimeout(() => {
-        if (indicator.parentNode) {
-            indicator.remove();
-        }
-    }, 2000);
-}
 
 function showToast(message) {
     const existing = document.querySelector('.shortcut-toast');
@@ -506,21 +551,13 @@ function showToast(message) {
     document.body.appendChild(toast);
     
     setTimeout(() => {
-        if (toast.parentNode) {
-            toast.remove();
-        }
+        if (toast.parentNode) toast.remove();
     }, 2000);
 }
 
 function toggleShortcutsPanel() {
     const panel = document.getElementById('shortcuts-panel');
     panel.classList.toggle('collapsed');
-    
-    if (!panel.classList.contains('collapsed')) {
-        showToast('⌨️ Keyboard shortcuts displayed');
-    } else {
-        showToast('Shortcuts panel hidden');
-    }
 }
 
 function updateStabilityBadge(letter, confidence) {
@@ -541,15 +578,9 @@ function updateStabilityBadge(letter, confidence) {
     }
 }
 
-// ====================================
-// TEXT MANIPULATION FUNCTIONS
-// ====================================
-
 function saveToHistory(text) {
     actionHistory.push(text);
-    if (actionHistory.length > MAX_HISTORY) {
-        actionHistory.shift();
-    }
+    if (actionHistory.length > MAX_HISTORY) actionHistory.shift();
 }
 
 function addManualSpace() {
@@ -559,127 +590,6 @@ function addManualSpace() {
         txt.value += " ";
     }
 }
-
-function deleteLastWord() {
-    const txt = document.getElementById('txt-output');
-    if (txt.value.length === 0) return;
-    
-    saveToHistory(txt.value);
-    let text = txt.value.trimEnd();
-    const lastSpaceIndex = text.lastIndexOf(' ');
-    
-    if (lastSpaceIndex === -1) {
-        txt.value = "";
-    } else {
-        txt.value = text.substring(0, lastSpaceIndex);
-    }
-}
-
-function copyToClipboard() {
-    const txt = document.getElementById('txt-output');
-    if (txt.value.length === 0) {
-        showToast('Nothing to copy');
-        return;
-    }
-    
-    navigator.clipboard.writeText(txt.value).then(() => {
-        showToast('📋 Text copied to clipboard!');
-    }).catch(() => {
-        txt.select();
-        document.execCommand('copy');
-        showToast('📋 Text copied!');
-    });
-}
-
-function undoLastAction() {
-    if (actionHistory.length === 0) {
-        showToast('Nothing to undo');
-        return;
-    }
-    
-    const txt = document.getElementById('txt-output');
-    const previousState = actionHistory.pop();
-    txt.value = previousState;
-    showToast('↩ Undo successful');
-}
-
-// ====================================
-// PREDICTION FETCHING WITH STABILITY
-// ====================================
-
-function fetchPrediction() {
-    fetch('/api/predict')
-    .then(response => response.json())
-    .then(data => {
-        let displayLetter = data.letter;
-        if (data.letter === "SPACE") {
-            displayLetter = "[ SPACE ]";
-        } else if (data.letter === "Scanning...") {
-            displayLetter = "Waiting...";
-        } else if (data.letter === "Hold steady...") {
-            displayLetter = "Hold...";
-        }
-        
-        document.getElementById('lbl-letter').innerText = displayLetter;
-
-        let percentage = (data.confidence * 100).toFixed(1);
-        document.getElementById('lbl-confidence').innerText = percentage + "%";
-
-        const progressBar = document.getElementById('confidence-bar');
-        progressBar.style.width = percentage + "%";
-
-        if (data.confidence >= 0.90) {
-            progressBar.style.backgroundColor = "#00ff00";
-        } else if (data.confidence >= 0.80) {
-            progressBar.style.backgroundColor = "#ffff00";
-        } else if (data.confidence >= 0.60) {
-            progressBar.style.backgroundColor = "#ff9900";
-        } else {
-            progressBar.style.backgroundColor = "var(--accent-cyan)";
-        }
-
-        updateStabilityBadge(data.letter, data.confidence);
-
-        if (data.letter !== "Scanning..." && 
-            data.letter !== "Hold steady..." &&
-            data.letter !== "Camera Error" &&
-            data.confidence >= ACCURACY_THRESHOLD) {
-
-            if (data.letter === lastDetectedLetter) {
-                stableLetterCounter++;
-
-                let requiredStability = (data.letter === "SPACE") ? STABILITY_SPACE : STABILITY_LETTER;
-
-                if (stableLetterCounter >= requiredStability) {
-                    if (data.letter === "SPACE") {
-                        appendSpace();
-                        showToast('␣ Space added');
-                    } else {
-                        appendToConsole(data.letter);
-                    }
-                    
-                    stableLetterCounter = 0;
-                    lastDetectedLetter = "";
-                }
-            } else {
-                lastDetectedLetter = data.letter;
-                stableLetterCounter = 1;
-            }
-        } else {
-            stableLetterCounter = 0;
-            if (data.confidence < ACCURACY_THRESHOLD && data.letter !== "Scanning...") {
-                lastDetectedLetter = "";
-            }
-        }
-    })
-    .catch(err => console.log("Pipeline syncing..."));
-}
-
-const predictionInterval = setInterval(fetchPrediction, 200);
-
-// ====================================
-// OUTPUT FUNCTIONS
-// ====================================
 
 function appendToConsole(char) {
     const txt = document.getElementById('txt-output');
@@ -713,63 +623,38 @@ function clearAllText() {
 
 function triggerVoiceSynthesis() {
     const text = document.getElementById('txt-output').value.trim();
-    if (!text) {
-        showToast('⚠️ No text to speak');
-        return;
-    }
-
-    if (!window.speechSynthesis) {
-        showToast('❌ Speech not supported');
-        return;
-    }
+    if (!text) return;
+    
+    if (!window.speechSynthesis) return;
     
     window.speechSynthesis.cancel();
-    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.90;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    
-    utterance.onstart = () => {
-        showKeyboardIndicator('🔊 Speaking...');
-    };
-    
-    utterance.onend = () => {
-        showKeyboardIndicator('✅ Done');
-    };
-    
-    utterance.onerror = () => {
-        showToast('⚠️ Speech error. Try again.');
-    };
-    
     window.speechSynthesis.speak(utterance);
 }
 
 function exitWorkspace() {
-    clearInterval(predictionInterval);
+    if (predictionInterval) clearInterval(predictionInterval);
+    if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+    }
     window.speechSynthesis.cancel();
-    
-    fetch('/api/terminate', { method: 'POST' })
-    .then(response => response.json())
-    .then(data => {
-        window.location.href = '/selection';
-    })
-    .catch(error => {
-        setTimeout(() => {
-            window.location.href = '/selection';
-        }, 300);
-    });
+    window.location.href = '/selection';
 }
 
 // ====================================
 // INITIALIZATION
 // ====================================
 
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        showToast('⌨️ Press ? for shortcuts | Hold gestures steady for recognition');
-    }, 1500);
+window.addEventListener('load', async () => {
+    const success = await initializeWebcam();
+    if (success) {
+        predictionInterval = setInterval(sendFrameForPrediction, 200);
+        setTimeout(() => {
+            showToast('⌨️ Press ? for shortcuts | Hold gestures steady');
+        }, 1500);
+    }
 });
 
 </script>

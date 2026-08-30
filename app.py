@@ -1,5 +1,6 @@
 import os
 import sys
+import base64
 
 # Suppress all unnecessary logging for performance
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -67,6 +68,47 @@ def recognition():
     if not success:
         return f"Error initializing {mode} pipeline.", 500
     return render_template('recognition.html', mode=mode)
+
+# ============================================
+# BROWSER WEBCAM PREDICTION ENDPOINT
+# ============================================
+
+@app.route('/api/predict_frame', methods=['POST'])
+def api_predict_frame():
+    """Process frame from browser webcam."""
+    global latest_letter, latest_confidence
+    try:
+        data = request.get_json()
+        frame_data = data.get('frame', '')
+        
+        # Decode base64 image
+        if 'base64,' in frame_data:
+            frame_data = frame_data.split('base64,')[1]
+        
+        img_bytes = base64.b64decode(frame_data)
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'letter': 'Scanning...', 'confidence': 0.0})
+        
+        # Flip horizontally for mirror effect
+        frame = cv2.flip(frame, 1)
+        
+        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        if manager.hands is not None and manager.model is not None:
+            latest_letter, latest_confidence = manager.process_frame(img_rgb)
+        
+        return jsonify({'letter': latest_letter, 'confidence': float(latest_confidence)})
+    
+    except Exception as e:
+        print(f"Error in predict_frame: {e}")
+        return jsonify({'letter': 'Scanning...', 'confidence': 0.0})
+
+# ============================================
+# LEGACY VIDEO FEED (Works locally only)
+# ============================================
 
 def generate_unified_stream():
     global latest_letter, latest_confidence
