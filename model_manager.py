@@ -11,10 +11,7 @@ os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
 tf.get_logger().setLevel('ERROR')
 
 class SignModelManager:
-    """
-    Multi-Modal Sign Language Recognition Manager
-    with Auto-Lighting, Smart Prediction, and Full Repeat Support.
-    """
+    """Multi-Modal Sign Language Recognition Manager."""
     
     def __init__(self):
         self.active_mode = None
@@ -42,9 +39,6 @@ class SignModelManager:
         self.stable_letter = "Scanning..."
         self.stable_confidence = 0.0
         self.no_hand_frames = 0
-        self.min_confidence = 0.90
-        self.consensus_required = 0.75
-        self.min_frames_before_output = 12
         self.cooldown_frames = 8
         
         # Mode-specific settings
@@ -146,49 +140,6 @@ class SignModelManager:
         self.lighting_history.clear()
         self.lighting_stable = False
         self._frame_count = 0
-
-    def _analyze_lighting(self, frame):
-        """Analyze and compensate lighting conditions."""
-        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
-        l_channel, a_channel, b_channel = cv2.split(lab)
-        current_brightness = np.mean(l_channel)
-        
-        self.lighting_history.append({'brightness': current_brightness})
-        
-        if len(self.lighting_history) >= 10:
-            recent = [h['brightness'] for h in list(self.lighting_history)[-10:]]
-            self.lighting_stable = np.std(recent) < 5.0
-        
-        if self.auto_brightness:
-            correction = self.target_brightness - current_brightness
-            self.brightness_level = np.clip(correction * 0.5, -50, 50) if abs(correction) > 15 else 0
-        
-        if self.auto_contrast:
-            l_eq = self.clahe.apply(l_channel)
-            frame = cv2.cvtColor(cv2.merge([l_eq, a_channel, b_channel]), cv2.COLOR_LAB2BGR)
-        
-        if abs(self.brightness_level) > 1:
-            frame = cv2.convertScaleAbs(frame, alpha=1.0, beta=self.brightness_level)
-        
-        if current_brightness < 80 or current_brightness > 180:
-            gamma = 1.5 if current_brightness < 80 else 0.7
-            frame = self._adjust_gamma(frame, gamma)
-        
-        return frame
-
-    def _adjust_gamma(self, image, gamma=1.0):
-        inv_gamma = 1.0 / gamma
-        table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in range(256)]).astype("uint8")
-        return cv2.LUT(image, table)
-
-    def _enhance_for_detection(self, frame):
-        """Enhance frame for MediaPipe detection."""
-        ycrcb = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
-        y, cr, cb = cv2.split(ycrcb)
-        y_eq = cv2.equalizeHist(y)
-        enhanced = cv2.cvtColor(cv2.merge([y_eq, cr, cb]), cv2.COLOR_YCrCb2BGR)
-        kernel = np.array([[-0.5, -0.5, -0.5], [-0.5, 5.0, -0.5], [-0.5, -0.5, -0.5]])
-        return cv2.filter2D(enhanced, -1, kernel)
 
     def extract_landmark_features(self, hand_landmarks):
         """Extract 63 normalized features from hand landmarks."""
@@ -295,21 +246,13 @@ class SignModelManager:
         return raw_letter, avg_confidence
 
     def process_frame(self, frame_rgb):
-        """Process frame with optimized lighting and smart prediction."""
+        """Process frame with optimized prediction."""
         if self.hands is None or self.model is None:
             return "Scanning...", 0.0
 
         try:
             self._frame_count += 1
-            if self._frame_count % 3 == 0:
-                frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-                frame_compensated = self._analyze_lighting(frame_bgr)
-                frame_enhanced = self._enhance_for_detection(frame_compensated)
-                frame_processed = cv2.cvtColor(frame_enhanced, cv2.COLOR_BGR2RGB)
-            else:
-                frame_processed = frame_rgb
-            
-            results = self.hands.process(frame_processed)
+            results = self.hands.process(frame_rgb)
 
             if not results.multi_hand_landmarks:
                 self.no_hand_frames += 1
@@ -360,11 +303,6 @@ class SignModelManager:
     def shutdown_pipeline(self):
         """Safely shutdown pipeline."""
         if self.hands is not None:
-            try:
-                dummy = np.zeros((480, 640, 3), dtype=np.uint8)
-                self.hands.process(dummy)
-            except:
-                pass
             try:
                 self.hands.close()
             except:

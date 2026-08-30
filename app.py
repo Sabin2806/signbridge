@@ -23,35 +23,8 @@ app = Flask(__name__)
 manager = SignModelManager()
 
 # Global State Management
-camera = None
 latest_letter = "Scanning..."
 latest_confidence = 0.0
-
-def get_camera():
-    """Get or create camera instance."""
-    global camera
-    if camera is None:
-        camera = cv2.VideoCapture(0)
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    return camera
-
-def release_camera():
-    """Release camera resources."""
-    global camera
-    if camera is not None:
-        camera.release()
-        camera = None
-
-def shutdown_server():
-    """Shutdown the Flask server gracefully."""
-    print("\n" + "="*50)
-    print("Server shutdown initiated...")
-    release_camera()
-    manager.shutdown_pipeline()
-    print("Server terminating...")
-    print("="*50)
-    os.kill(os.getpid(), signal.SIGINT)
 
 @app.route('/')
 def home():
@@ -75,7 +48,7 @@ def recognition():
 
 @app.route('/api/predict_frame', methods=['POST'])
 def api_predict_frame():
-    """Process frame from browser webcam."""
+    """Process frame from browser webcam with landmarks."""
     global latest_letter, latest_confidence
     try:
         data = request.get_json()
@@ -90,69 +63,58 @@ def api_predict_frame():
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if frame is None:
-            return jsonify({'letter': 'Scanning...', 'confidence': 0.0})
+            return jsonify({'letter': 'Scanning...', 'confidence': 0.0, 'annotated_frame': None})
         
         # Flip horizontally for mirror effect
         frame = cv2.flip(frame, 1)
         
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        if manager.hands is not None and manager.model is not None:
-            latest_letter, latest_confidence = manager.process_frame(img_rgb)
+        mp_hands = mp.solutions.hands
+        mp_drawing = mp.solutions.drawing_utils
         
-        return jsonify({'letter': latest_letter, 'confidence': float(latest_confidence)})
-    
-    except Exception as e:
-        print(f"Error in predict_frame: {e}")
-        return jsonify({'letter': 'Scanning...', 'confidence': 0.0})
-
-# ============================================
-# LEGACY VIDEO FEED (Works locally only)
-# ============================================
-
-def generate_unified_stream():
-    global latest_letter, latest_confidence
-    cap = get_camera()
-    
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+        annotated_frame = frame.copy()
+        
+        if manager.hands is not None and manager.model is not None:
+            # Process frame for prediction
+            latest_letter, latest_confidence = manager.process_frame(img_rgb)
             
-        frame = cv2.flip(frame, 1)
-        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        if manager.hands is not None and manager.model is not None:
-            latest_letter, latest_confidence = manager.process_frame(img_rgb)
-        else:
-            latest_letter = "Scanning..."
-            latest_confidence = 0.0
-        
-        if manager.hands is not None:
+            # Draw landmarks
             try:
                 results = manager.hands.process(img_rgb)
                 if results.multi_hand_landmarks:
                     for hand_landmarks in results.multi_hand_landmarks:
                         mp_drawing.draw_landmarks(
-                            frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
-                            mp_drawing.DrawingSpec(color=(0, 243, 255), thickness=2, circle_radius=2),
-                            mp_drawing.DrawingSpec(color=(17, 17, 17), thickness=2)
+                            annotated_frame,
+                            hand_landmarks,
+                            mp_hands.HAND_CONNECTIONS,
+                            mp_drawing.DrawingSpec(color=(0, 243, 255), thickness=3, circle_radius=5),
+                            mp_drawing.DrawingSpec(color=(157, 78, 221), thickness=2)
                         )
-            except Exception:
-                pass
-                    
-        ret, buffer = cv2.imencode('.jpg', frame)
-        if not ret:
-            continue
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            except Exception as e:
+                print(f"Landmark drawing error: {e}")
+        else:
+            latest_letter = "Pipeline not ready..."
+            latest_confidence = 0.0
+        
+        # Encode annotated frame back to base64
+        _, buffer = cv2.imencode('.jpg', annotated_frame)
+        annotated_base64 = base64.b64encode(buffer).decode('utf-8')
+        annotated_data = f'data:image/jpeg;base64,{annotated_base64}'
+        
+        return jsonify({
+            'letter': latest_letter,
+            'confidence': float(latest_confidence),
+            'annotated_frame': annotated_data
+        })
+    
+    except Exception as e:
+        print(f"Error in predict_frame: {e}")
+        return jsonify({'letter': 'Scanning...', 'confidence': 0.0, 'annotated_frame': None})
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_unified_stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# ============================================
+# LEGACY ENDPOINTS (Work locally)
+# ============================================
 
 @app.route('/api/predict')
 def api_predict():
@@ -163,17 +125,20 @@ def api_predict():
 def api_terminate():
     print("\nPipeline termination requested...")
     manager.shutdown_pipeline()
-    release_camera()
     return jsonify({'status': 'Pipeline terminated.', 'redirect': '/selection'})
 
 @app.route('/api/shutdown', methods=['POST'])
 def api_shutdown():
     print("\nFull shutdown requested...")
     manager.shutdown_pipeline()
-    release_camera()
     response = jsonify({'status': 'System shutting down.', 'message': 'You can close this window.'})
     threading.Timer(1.5, shutdown_server).start()
     return response
+
+def shutdown_server():
+    print("\nServer shutdown initiated...")
+    manager.shutdown_pipeline()
+    os.kill(os.getpid(), signal.SIGINT)
 
 if __name__ == '__main__':
     print("\n" + "="*50)
@@ -189,6 +154,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received.")
     finally:
-        release_camera()
         manager.shutdown_pipeline()
         print("\nSignBridge shutdown complete.")
