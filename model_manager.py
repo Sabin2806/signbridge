@@ -7,6 +7,7 @@ from collections import deque
 import cv2
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
 tf.get_logger().setLevel('ERROR')
 
 class SignModelManager:
@@ -18,7 +19,7 @@ class SignModelManager:
     def __init__(self):
         self.active_mode = None
         self.model = None
-        self.mp_hands = mp.solutions.hands
+        self.mp_hands_module = mp.solutions.hands
         self.hands = None
 
         self.asl_path = './saved_models/asl_classifier.keras'
@@ -55,9 +56,9 @@ class SignModelManager:
             'min_frames_before_output': 12
         }
         self.isl_settings = {
-            'min_confidence': 0.80,         # Lower threshold for ISL
-            'consensus_required': 0.70,     # Lower consensus for ISL
-            'min_frames_before_output': 15  # More frames for stability
+            'min_confidence': 0.80,
+            'consensus_required': 0.70,
+            'min_frames_before_output': 15
         }
         
         # Repeat letter support
@@ -88,7 +89,7 @@ class SignModelManager:
                 dummy = np.random.randn(1, 63).astype(np.float32)
                 self.model.predict(dummy, verbose=0)
                 
-                self.hands = self.mp_hands.Hands(
+                self.hands = self.mp_hands_module.Hands(
                     static_image_mode=False,
                     max_num_hands=1,
                     min_detection_confidence=0.3,
@@ -116,13 +117,12 @@ class SignModelManager:
                 dummy = np.random.randn(1, 126).astype(np.float32)
                 self.model.predict(dummy, verbose=0)
                 
-                # ISL uses FULL model complexity for better accuracy
-                self.hands = self.mp_hands.Hands(
+                self.hands = self.mp_hands_module.Hands(
                     static_image_mode=False,
                     max_num_hands=2,
-                    min_detection_confidence=0.4,    # Higher for ISL
-                    min_tracking_confidence=0.4,     # Higher for ISL
-                    model_complexity=1               # Full model for accuracy
+                    min_detection_confidence=0.4,
+                    min_tracking_confidence=0.4,
+                    model_complexity=1
                 )
                 
                 self.active_mode = 'ISL'
@@ -250,7 +250,6 @@ class SignModelManager:
                 self.repeat_ready = True
                 self.different_gesture_detected = True
         
-        # Get mode-specific settings
         settings = self.isl_settings if self.active_mode == 'ISL' else self.asl_settings
         min_frames = settings['min_frames_before_output']
         min_conf = settings['min_confidence']
@@ -305,7 +304,6 @@ class SignModelManager:
             return "Scanning...", 0.0
 
         try:
-            # Apply lighting only every 3rd frame
             self._frame_count += 1
             if self._frame_count % 3 == 0:
                 frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)

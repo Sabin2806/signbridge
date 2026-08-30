@@ -5,6 +5,7 @@ import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['GLOG_minloglevel'] = '3'
 os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
 
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR)
@@ -12,6 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 from flask import Flask, render_template, Response, jsonify, request
 import cv2
 import numpy as np
+import mediapipe as mp
 from model_manager import SignModelManager
 import threading
 import signal
@@ -70,7 +72,6 @@ def generate_unified_stream():
     global latest_letter, latest_confidence
     cap = get_camera()
     
-    import mediapipe as mp
     mp_hands = mp.solutions.hands
     mp_drawing = mp.solutions.drawing_utils
 
@@ -136,11 +137,13 @@ if __name__ == '__main__':
     print("\n" + "="*50)
     print("🚀 SignBridge - Multi-Modal Sign Recognition System")
     print("="*50)
-    print("Access: http://localhost:5000")
+    
+    port = int(os.environ.get('PORT', 10000))
+    print(f"Access: http://0.0.0.0:{port}")
     print("="*50 + "\n")
     
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        app.run(host='0.0.0.0', port=port, debug=False)
     except KeyboardInterrupt:
         print("\n⚠️ Keyboard interrupt received.")
     finally:
