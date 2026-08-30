@@ -45,7 +45,7 @@ def release_camera():
 def shutdown_server():
     """Shutdown the Flask server gracefully."""
     print("\n" + "="*50)
-    print("🛑 Server shutdown initiated...")
+    print("Server shutdown initiated...")
     release_camera()
     manager.shutdown_pipeline()
     print("Server terminating...")
@@ -119,14 +119,14 @@ def api_predict():
 
 @app.route('/api/terminate', methods=['POST'])
 def api_terminate():
-    print("\n🛑 Pipeline termination requested...")
+    print("\nPipeline termination requested...")
     manager.shutdown_pipeline()
     release_camera()
     return jsonify({'status': 'Pipeline terminated.', 'redirect': '/selection'})
 
 @app.route('/api/shutdown', methods=['POST'])
 def api_shutdown():
-    print("\n🛑 Full shutdown requested...")
+    print("\nFull shutdown requested...")
     manager.shutdown_pipeline()
     release_camera()
     response = jsonify({'status': 'System shutting down.', 'message': 'You can close this window.'})
@@ -135,7 +135,7 @@ def api_shutdown():
 
 if __name__ == '__main__':
     print("\n" + "="*50)
-    print("🚀 SignBridge - Multi-Modal Sign Recognition System")
+    print("SignBridge - Multi-Modal Sign Recognition System")
     print("="*50)
     
     port = int(os.environ.get('PORT', 10000))
@@ -145,8 +145,8 @@ if __name__ == '__main__':
     try:
         app.run(host='0.0.0.0', port=port, debug=False)
     except KeyboardInterrupt:
-        print("\n⚠️ Keyboard interrupt received.")
+        print("\nKeyboard interrupt received.")
     finally:
         release_camera()
         manager.shutdown_pipeline()
-        print("\n✅ SignBridge shutdown complete.")
+        print("\nSignBridge shutdown complete.")

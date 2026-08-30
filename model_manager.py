@@ -19,7 +19,7 @@ class SignModelManager:
     def __init__(self):
         self.active_mode = None
         self.model = None
-        self.mp_hands_module = mp.solutions.hands
+        self.mp_hands = mp.solutions.hands
         self.hands = None
 
         self.asl_path = './saved_models/asl_classifier.keras'
@@ -47,9 +47,7 @@ class SignModelManager:
         self.min_frames_before_output = 12
         self.cooldown_frames = 8
         
-        # ============================================
-        # MODE-SPECIFIC SETTINGS
-        # ============================================
+        # Mode-specific settings
         self.asl_settings = {
             'min_confidence': 0.90,
             'consensus_required': 0.75,
@@ -79,17 +77,16 @@ class SignModelManager:
 
         if mode == 'ASL':
             if not os.path.exists(self.asl_path):
-                print(f"❌ Error: Model not found at {self.asl_path}")
+                print(f"Error: Model not found at {self.asl_path}")
                 return False
             try:
                 self.model = keras.models.load_model(self.asl_path)
-                print(f"✅ ASL Model loaded.")
+                print(f"ASL Model loaded.")
                 
-                # PRE-WARM
                 dummy = np.random.randn(1, 63).astype(np.float32)
                 self.model.predict(dummy, verbose=0)
                 
-                self.hands = self.mp_hands_module.Hands(
+                self.hands = self.mp_hands.Hands(
                     static_image_mode=False,
                     max_num_hands=1,
                     min_detection_confidence=0.3,
@@ -99,25 +96,24 @@ class SignModelManager:
                 
                 self.active_mode = 'ASL'
                 self._reset_state()
-                print("✅ ASL Pipeline Initialized")
+                print("ASL Pipeline Initialized")
                 return True
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"Error: {e}")
                 return False
 
         elif mode == 'ISL':
             if not os.path.exists(self.isl_path):
-                print(f"❌ Error: Model not found at {self.isl_path}")
+                print(f"Error: Model not found at {self.isl_path}")
                 return False
             try:
                 self.model = keras.models.load_model(self.isl_path)
-                print(f"✅ ISL Model loaded.")
+                print(f"ISL Model loaded.")
                 
-                # PRE-WARM
                 dummy = np.random.randn(1, 126).astype(np.float32)
                 self.model.predict(dummy, verbose=0)
                 
-                self.hands = self.mp_hands_module.Hands(
+                self.hands = self.mp_hands.Hands(
                     static_image_mode=False,
                     max_num_hands=2,
                     min_detection_confidence=0.4,
@@ -127,10 +123,10 @@ class SignModelManager:
                 
                 self.active_mode = 'ISL'
                 self._reset_state()
-                print("✅ ISL Pipeline Initialized")
+                print("ISL Pipeline Initialized")
                 return True
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"Error: {e}")
                 return False
 
         return False
@@ -378,4 +374,4 @@ class SignModelManager:
         self.active_mode = None
         self._reset_state()
         tf.keras.backend.clear_session()
-        print("✅ Pipeline shutdown complete.")
+        print("Pipeline shutdown complete.")
