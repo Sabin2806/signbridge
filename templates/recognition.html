@@ -45,12 +45,12 @@
 
             <div class="video-box">
                 <div class="console-header">
-                    [ BROWSER WEBCAM - HAND LANDMARKS VISIBLE ]
+                    [ BROWSER WEBCAM - HAND LANDMARKS ]
                 </div>
                 <div class="video-feed-wrapper">
-                    <video id="webcam-video" autoplay playsinline style="display:none;"></video>
+                    <video id="webcam-video" autoplay playsinline style="width:100%; height:auto; border-radius:8px; display:block;"></video>
                     <canvas id="webcam-canvas" style="display:none;"></canvas>
-                    <canvas id="result-canvas" style="width:100%; height:auto; border-radius:8px;"></canvas>
+                    <canvas id="result-canvas" style="width:100%; height:auto; border-radius:8px; display:none;"></canvas>
                 </div>
 
                 <div class="metrics-panel">
@@ -116,6 +116,10 @@ async function initializeWebcam() {
         
         const video = document.getElementById('webcam-video');
         video.srcObject = webcamStream;
+        await video.play();
+        
+        video.style.display = 'block';
+        document.getElementById('result-canvas').style.display = 'none';
         
         showToast('📹 Webcam connected! Show hand signs to translate.');
         return true;
@@ -155,13 +159,20 @@ function sendFrameForPrediction() {
     .then(data => {
         updatePredictionDisplay(data);
         
-        if (data.annotated_frame && resultCanvas) {
+        if (data.annotated_frame) {
             const img = new Image();
             img.onload = function() {
                 const rctx = resultCanvas.getContext('2d');
                 resultCanvas.width = 640;
                 resultCanvas.height = 480;
                 rctx.drawImage(img, 0, 0, 640, 480);
+                resultCanvas.style.display = 'block';
+                video.style.display = 'none';
+            };
+            img.onerror = function() {
+                console.error('Failed to load annotated frame');
+                video.style.display = 'block';
+                resultCanvas.style.display = 'none';
             };
             img.src = data.annotated_frame;
         }
@@ -235,11 +246,11 @@ document.addEventListener('keydown', function(event) {
 // ====================================
 
 function showToast(message) {
-    const existing = document.querySelector('.shortcut-toast');
+    const existing = document.querySelector('.toast-message');
     if (existing) existing.remove();
     const toast = document.createElement('div');
-    toast.className = 'shortcut-toast';
-    toast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.95); border:1px solid #00f3ff; border-radius:25px; padding:10px 25px; color:#00f3ff; font-size:0.9rem; font-weight:bold; z-index:1001;';
+    toast.className = 'toast-message';
+    toast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.95); border:1px solid #00f3ff; border-radius:25px; padding:10px 25px; color:#00f3ff; font-size:0.9rem; font-weight:bold; z-index:1001; transition:all 0.3s;';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2000);
