@@ -1,28 +1,32 @@
-import os
-import sys
-import base64
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['GLOG_minloglevel'] = '3'
-os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
-os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
-
-import absl.logging
-absl.logging.set_verbosity(absl.logging.ERROR)
-
 from flask import Flask, render_template, Response, jsonify, request
 import cv2
 import numpy as np
-import mediapipe as mp
 from model_manager import SignModelManager
 import threading
+import os
 import signal
+import base64
 
 app = Flask(__name__)
 manager = SignModelManager()
 
+camera = None
 latest_letter = "Scanning..."
 latest_confidence = 0.0
+
+def get_camera():
+    global camera
+    if camera is None:
+        camera = cv2.VideoCapture(0)
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    return camera
+
+def release_camera():
+    global camera
+    if camera is not None:
+        camera.release()
+        camera = None
 
 @app.route('/')
 def home():
@@ -42,11 +46,24 @@ def recognition():
 
 @app.route('/api/predict_frame', methods=['POST'])
 def api_predict_frame():
+    """
+    Receives base64 frame from frontend,
+    processes through MediaPipe + CNN,
+    returns prediction with annotated frame.
+    """
     global latest_letter, latest_confidence
+    
     try:
         data = request.get_json()
-        frame_data = data.get('frame', '')
         
+        if data is None or 'frame' not in data:
+            return jsonify({
+                'letter': 'Scanning...',
+                'confidence': 0.0,
+                'annotated_frame': None
+            })
+        
+        frame_data = data['frame']
         if 'base64,' in frame_data:
             frame_data = frame_data.split('base64,')[1]
         
@@ -55,82 +72,104 @@ def api_predict_frame():
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if frame is None:
-            return jsonify({'letter': 'Scanning...', 'confidence': 0.0, 'annotated_frame': None})
+            return jsonify({
+                'letter': 'Scanning...',
+                'confidence': 0.0,
+                'annotated_frame': None
+            })
         
         frame = cv2.flip(frame, 1)
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        mp_hands = mp.solutions.hands
-        mp_drawing = mp.solutions.drawing_utils
-        
-        annotated_frame = frame.copy()
-        
         if manager.hands is not None and manager.model is not None:
             latest_letter, latest_confidence = manager.process_frame(img_rgb)
-            
+        else:
+            latest_letter = "Scanning..."
+            latest_confidence = 0.0
+        
+        annotated_frame = None
+        
+        if manager.hands is not None:
             try:
+                import mediapipe as mp
+                mp_hands = mp.solutions.hands
+                mp_drawing = mp.solutions.drawing_utils
+                
                 results = manager.hands.process(img_rgb)
                 if results.multi_hand_landmarks:
                     for hand_landmarks in results.multi_hand_landmarks:
                         mp_drawing.draw_landmarks(
-                            annotated_frame,
-                            hand_landmarks,
-                            mp_hands.HAND_CONNECTIONS,
-                            mp_drawing.DrawingSpec(color=(0, 243, 255), thickness=3, circle_radius=5),
-                            mp_drawing.DrawingSpec(color=(157, 78, 221), thickness=2)
+                            frame, hand_landmarks, mp_hands.HAND_CONNECTIONS,
+                            mp_drawing.DrawingSpec(color=(0, 243, 255), thickness=2, circle_radius=2),
+                            mp_drawing.DrawingSpec(color=(17, 17, 17), thickness=2)
                         )
+                
+                _, buffer = cv2.imencode('.jpg', frame)
+                annotated_frame = 'data:image/jpeg;base64,' + base64.b64encode(buffer).decode('utf-8')
             except Exception as e:
-                print(f"Landmark drawing error: {e}")
-        else:
-            latest_letter = "Pipeline not ready..."
-            latest_confidence = 0.0
-        
-        _, buffer = cv2.imencode('.jpg', annotated_frame)
-        annotated_base64 = base64.b64encode(buffer).decode('utf-8')
-        annotated_data = f'data:image/jpeg;base64,{annotated_base64}'
+                print(f"Drawing error: {e}")
         
         return jsonify({
             'letter': latest_letter,
             'confidence': float(latest_confidence),
-            'annotated_frame': annotated_data
+            'annotated_frame': annotated_frame
         })
-    
+        
     except Exception as e:
-        print(f"Error in predict_frame: {e}")
-        return jsonify({'letter': 'Scanning...', 'confidence': 0.0, 'annotated_frame': None})
+        print(f"Predict frame error: {e}")
+        return jsonify({
+            'letter': 'Scanning...',
+            'confidence': 0.0,
+            'annotated_frame': None
+        })
 
-@app.route('/api/predict')
+@app.route('/api/predict', methods=['GET'])
 def api_predict():
     global latest_letter, latest_confidence
-    return jsonify({'letter': latest_letter, 'confidence': float(latest_confidence)})
+    return jsonify({
+        'letter': latest_letter,
+        'confidence': float(latest_confidence)
+    })
+
+@app.route('/video_feed')
+def video_feed():
+    def generate():
+        cap = get_camera()
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.flip(frame, 1)
+            ret, buffer = cv2.imencode('.jpg', frame)
+            if ret:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/terminate', methods=['POST'])
 def api_terminate():
     manager.shutdown_pipeline()
+    release_camera()
     return jsonify({'status': 'Pipeline terminated.', 'redirect': '/selection'})
 
 @app.route('/api/shutdown', methods=['POST'])
 def api_shutdown():
     manager.shutdown_pipeline()
-    response = jsonify({'status': 'System shutting down.'})
-    threading.Timer(1.5, shutdown_server).start()
-    return response
-
-def shutdown_server():
-    manager.shutdown_pipeline()
-    os.kill(os.getpid(), signal.SIGINT)
+    release_camera()
+    return jsonify({'status': 'System shutting down.'})
 
 if __name__ == '__main__':
-    print("="*50)
+    print("\n" + "="*50)
     print("SignBridge - Multi-Modal Sign Recognition System")
     print("="*50)
-    port = int(os.environ.get('PORT', 10000))
-    print(f"Access: http://0.0.0.0:{port}")
-    print("="*50)
+    print("Access: http://localhost:5000")
+    print("="*50 + "\n")
+    
     try:
-        app.run(host='0.0.0.0', port=port, debug=False)
+        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received.")
     finally:
+        release_camera()
         manager.shutdown_pipeline()
-        print("\nSignBridge shutdown complete.")
+        print("SignBridge shutdown complete.")
