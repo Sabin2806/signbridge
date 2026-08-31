@@ -24,7 +24,9 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 
 ---
 
-## 📸 Live Demo Output
+## 🎥 Live Demo Video
+
+[Watch Demo Video](demo.mp4)
 
 **ASL Recognition Output**
 
