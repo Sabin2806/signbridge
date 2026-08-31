@@ -13,6 +13,7 @@ SignBridge: Real-time CNN-based ASL &amp; ISL sign alphabet recognition using Me
 SignBridge is a deep learning-based system that recognizes **American Sign Language (ASL)** and **Indian Sign Language (ISL)** alphabets in real-time using only a standard webcam. No GPU, no internet, no special hardware required.
 
 ---
+
 **HOME PAGE**
 
 <img src="assets/images/home page.png" width="700">
@@ -20,6 +21,22 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 **SELECTION PAGE**
 
 <img src="assets/images/selection page.png" width="700">
+
+---
+
+## 📸 Live Demo Output
+
+**ASL Recognition Output**
+
+<img src="assets/images/asl.png" width="700">
+
+**ISL Recognition Output**
+
+<img src="assets/images/isl.png" width="700">
+
+*Live demo video coming soon!*
+
+---
 
 ## 📊 Performance
 
@@ -69,8 +86,7 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 ---
 
 ## 📁 Project Structure
-
- signbridge/
+signbridge/
 ├── app.py # Flask server & API endpoints
 ├── model_manager.py # CNN loading & prediction pipeline
 ├── train_complete.py # Model training script
@@ -85,16 +101,17 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 ├── static/
 │ ├── style_home.css
 │ ├── style_selection.css
-│ ├── style_recognition.css
-├──assets
-│   └── images/
-|       ├── home page.png
-│       └── selection page.png
-|       |__ architecture.png
-|       |__ cnn architecture.png
+│ └── style_recognition.css
+├── assets/
+│ └── images/
+│ ├── home page.png
+│ ├── selection page.png
+│ ├── architecture.png
+│ ├── cnn architecture.png
+│ ├── asl.png
+│ └── isl.png
 ├── plots/ # Training visualizations
 └── reports/ # Training reports
-
 
 ---
 
@@ -111,7 +128,7 @@ SignBridge is a deep learning-based system that recognizes **American Sign Langu
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/signbridge.git
+git clone https://github.com/Sabin2806/signbridge.git
 cd signbridge
 
 # Create virtual environment
@@ -125,9 +142,7 @@ Run the Application
 
 python app.py
 
-
 📖 Usage Guide
-
 Open http://localhost:5000 in your browser
 
 Click "Initialize System" on the home page
@@ -145,7 +160,6 @@ Open palm → Space between words
 Click Speak or press Enter → Text read aloud
 
 🧠 How It Works
-
 Camera Capture — OpenCV captures frames at 640×480 @ 30 FPS
 
 Hand Detection — MediaPipe extracts 21 landmarks (x, y, z) per hand
@@ -158,9 +172,7 @@ Smart Filtering — Consensus check → Confidence threshold → Output
 
 SPACE Detection — Geometric rules detect open palm for spacing
 
-
 📈 Results
-
 ASL Model
 Test Accuracy: 99.92%
 
@@ -203,7 +215,6 @@ tqdm==4.66.1
 Pillow==9.5.0
 
 🎯 Applications
-
 🏥 Healthcare — Patient-doctor communication
 
 🏫 Education — Classroom participation
@@ -226,11 +237,9 @@ Pillow==9.5.0
 □ Word prediction using language models
 
 📄 License
-
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 🙏 Acknowledgments
-
 Google MediaPipe Team for hand tracking framework
 
 TensorFlow/Keras for deep learning tools
@@ -238,4 +247,3 @@ TensorFlow/Keras for deep learning tools
 Prathum Arikeri for ISL dataset
 
 All open-source contributors
-
