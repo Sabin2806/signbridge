@@ -27,3 +27,6 @@ Screenshot*
 .ipynb_checkpoints/
 *.ipynb
 *.log
+# Allow images in assets folder
+!assets/images/
+!assets/images/*.png
